@@ -16,7 +16,7 @@ module smallseg_G0table_rom
  );
     
 //small segment and G0's memory table
-(* RAM_STYLE="block" *) reg [171:0] smallseg_G0table [TABLE_ENTRY_SIZE:0];
+(* RAM_STYLE="BLOCK" *) reg [171:0] smallseg_G0table [TABLE_ENTRY_SIZE:0];
 
 initial begin
     if(SUBSET_NUM == 0)

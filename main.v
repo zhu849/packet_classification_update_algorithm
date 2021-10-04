@@ -29,6 +29,26 @@ module main(
  .command(command), 
  .clk(clk)
  );
+ /*
+ subset1 subset1(
+ .match_reg(subset1_match),
+ .match_ruleID_reg(match_ruleID1), 
+ 
+ .tupleData(tupleData),
+ .command(command), 
+ .clk(clk)
+ );
+ 
+ subset2 subset2(
+ .match_reg(subset2_match),
+ .match_ruleID_reg(match_ruleID2), 
+ 
+ .tupleData(tupleData),
+ .command(command), 
+ .clk(clk)
+ );
+ */
+ 
  
  always@(posedge clk)
  begin
