@@ -1,218 +1,65 @@
-`timescale 1ns / 1ps
 
 module search_G3table
 #(
     parameter SUBSET_NUM=0,
     parameter TABLE_NUM=0,
-    parameter TABLE_ENTRY_SIZE=0
+    parameter TABLE_ENTRY_SIZE=0,
+    parameter INDEX_BIT_LEN=11,
+    parameter PACKET_BIT_LEN=104,
+    parameter COMMAND_BIT_LEN=2,
+    parameter ENTRY_DATA_WIDTH=171
 )
 (
     output reg match,
-    output reg [10:0] ruleID,
-    output reg [10:0] next_index,
+    output reg [INDEX_BIT_LEN-1:0] ruleID,
+    output reg [INDEX_BIT_LEN-1:0] next_index,
     
     input we,
-    input [170:0] din,
-    input [10:0] search_index,
-    input [103:0] tupleData,
+    input [ENTRY_DATA_WIDTH-1:0] din,
+    input [INDEX_BIT_LEN-1:0] search_index,
+    input [PACKET_BIT_LEN-1:0] tupleData,
     input clk   
 );
 
 //G3's memory table
-(* RAM_STYLE="DISTRIBUTED" *) reg [170:0] G3_table [TABLE_ENTRY_SIZE:0];
+(* RAM_STYLE="DISTRIBUTED" *) reg [ENTRY_DATA_WIDTH-1:0] G3_table [TABLE_ENTRY_SIZE:0];
 
-/*
-// get result from memory
-wire [170:0] mem_data_w;
-G3_table_rom
-#(
-    .SUBSET_NUM(SUBSET_NUM),
-    .TABLE_NUM(TABLE_NUM),
-    .TABLE_ENTRY_SIZE(TABLE_ENTRY_SIZE)
-)
-G3_table_rom(
-    .dout(mem_data_w),
-
-    //.din(),
-    .addr(search_index),
-    .we(1'b0),
-    .clk(clk)
-);
-*/
-
+//accordding SUBSET_NUM and TABLE_NUM read different file from output
 initial begin
-    if(SUBSET_NUM == 0)
-    begin
-        if(TABLE_NUM == 0)
-        begin
-            $readmemb("D:/YuHang_update/subset0_G3_table/table0.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+    case(SUBSET_NUM)
+        0:begin
+            case(TABLE_NUM)
+                0: $readmemb("D:/YuHang_update/subset0_G3_table/table0.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                1: $readmemb("D:/YuHang_update/subset0_G3_table/table1.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                2: $readmemb("D:/YuHang_update/subset0_G3_table/table2.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                3: $readmemb("D:/YuHang_update/subset0_G3_table/table3.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+            endcase
         end
-        else if(TABLE_NUM == 1)
-        begin
-            $readmemb("D:/YuHang_update/subset0_G3_table/table1.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+        1:begin
+            case(TABLE_NUM)
+                0: $readmemb("D:/YuHang_update/subset1_G3_table/table0.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                1: $readmemb("D:/YuHang_update/subset1_G3_table/table1.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                2: $readmemb("D:/YuHang_update/subset1_G3_table/table2.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                3: $readmemb("D:/YuHang_update/subset1_G3_table/table3.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+            endcase
         end
-        else if(TABLE_NUM == 2)
-        begin
-            $readmemb("D:/YuHang_update/subset0_G3_table/table2.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+        2:begin
+            case(TABLE_NUM)
+                0: $readmemb("D:/YuHang_update/subset2_G3_table/table0.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                1: $readmemb("D:/YuHang_update/subset2_G3_table/table1.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                2: $readmemb("D:/YuHang_update/subset2_G3_table/table2.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                3: $readmemb("D:/YuHang_update/subset2_G3_table/table3.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+            endcase
         end
-        else if(TABLE_NUM == 3)
-        begin
-            $readmemb("D:/YuHang_update/subset0_G3_table/table3.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+        3:begin
+            case(TABLE_NUM)
+                0: $readmemb("D:/YuHang_update/subset3_G3_table/table0.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                1: $readmemb("D:/YuHang_update/subset3_G3_table/table1.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                2: $readmemb("D:/YuHang_update/subset3_G3_table/table2.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+                3: $readmemb("D:/YuHang_update/subset3_G3_table/table3.txt", G3_table, 0, TABLE_ENTRY_SIZE);
+            endcase
         end
-        else if(TABLE_NUM == 4)
-        begin
-            $readmemb("D:/YuHang_update/subset0_G3_table/table4.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 5)
-        begin
-            $readmemb("D:/YuHang_update/subset0_G3_table/table5.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 6)
-        begin
-            $readmemb("D:/YuHang_update/subset0_G3_table/table6.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 7)
-        begin
-            $readmemb("D:/YuHang_update/subset0_G3_table/table7.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 8)
-        begin
-            $readmemb("D:/YuHang_update/subset0_G3_table/table8.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else 
-        begin
-            $readmemb("D:/YuHang_update/subset0_G3_table/table9.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-     end
-    if(SUBSET_NUM == 1)
-    begin
-        if(TABLE_NUM == 0)
-        begin
-            $readmemb("D:/YuHang_update/subset1_G3_table/table0.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 1)
-        begin
-            $readmemb("D:/YuHang_update/subset1_G3_table/table1.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 2)
-        begin
-            $readmemb("D:/YuHang_update/subset1_G3_table/table2.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 3)
-        begin
-            $readmemb("D:/YuHang_update/subset1_G3_table/table3.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 4)
-        begin
-            $readmemb("D:/YuHang_update/subset1_G3_table/table4.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 5)
-        begin
-            $readmemb("D:/YuHang_update/subset1_G3_table/table5.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 6)
-        begin
-            $readmemb("D:/YuHang_update/subset1_G3_table/table6.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 7)
-        begin
-            $readmemb("D:/YuHang_update/subset1_G3_table/table7.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 8)
-        begin
-            $readmemb("D:/YuHang_update/subset1_G3_table/table8.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else 
-        begin
-            $readmemb("D:/YuHang_update/subset1_G3_table/table9.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end       
-    end
-    if(SUBSET_NUM == 2)
-    begin
-        if(TABLE_NUM == 0)
-        begin
-            $readmemb("D:/YuHang_update/subset2_G3_table/table0.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 1)
-        begin
-            $readmemb("D:/YuHang_update/subset2_G3_table/table1.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 2)
-        begin
-            $readmemb("D:/YuHang_update/subset2_G3_table/table2.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 3)
-        begin
-            $readmemb("D:/YuHang_update/subset2_G3_table/table3.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 4)
-        begin
-            $readmemb("D:/YuHang_update/subset2_G3_table/table4.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 5)
-        begin
-            $readmemb("D:/YuHang_update/subset2_G3_table/table5.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 6)
-        begin
-            $readmemb("D:/YuHang_update/subset2_G3_table/table6.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 7)
-        begin
-            $readmemb("D:/YuHang_update/subset2_G3_table/table7.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 8)
-        begin
-            $readmemb("D:/YuHang_update/subset2_G3_table/table8.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else 
-        begin
-            $readmemb("D:/YuHang_update/subset2_G3_table/table9.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end       
-    end
-    if(SUBSET_NUM == 3)
-    begin
-        if(TABLE_NUM == 0)
-        begin
-            $readmemb("D:/YuHang_update/subset3_G3_table/table0.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 1)
-        begin
-            $readmemb("D:/YuHang_update/subset3_G3_table/table1.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 2)
-        begin
-            $readmemb("D:/YuHang_update/subset3_G3_table/table2.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 3)
-        begin
-            $readmemb("D:/YuHang_update/subset3_G3_table/table3.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 4)
-        begin
-            $readmemb("D:/YuHang_update/subset3_G3_table/table4.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 5)
-        begin
-            $readmemb("D:/YuHang_update/subset3_G3_table/table5.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 6)
-        begin
-            $readmemb("D:/YuHang_update/subset3_G3_table/table6.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 7)
-        begin
-            $readmemb("D:/YuHang_update/subset3_G3_table/table7.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else if(TABLE_NUM == 8)
-        begin
-            $readmemb("D:/YuHang_update/subset3_G3_table/table8.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end
-        else 
-        begin
-            $readmemb("D:/YuHang_update/subset3_G3_table/table9.txt", G3_table, 0, TABLE_ENTRY_SIZE);
-        end       
-    end
+    endcase
 end
 
 always@(posedge clk)
@@ -225,11 +72,11 @@ begin
     begin
         if(G3_table[search_index][69:38] == tupleData[63:32])//compare dstIP
         begin
-            if((G3_table[search_index][107:92] <= tupleData[79:64]) && (tupleData[79:64] <= G3_table[search_index][91:76]))// compare srcPort
+            if((G3_table[search_index][107:92] < tupleData[79:64]) & (tupleData[79:64] < G3_table[search_index][91:76]))// compare srcPort
             begin
-                if((G3_table[search_index][139:124] <= tupleData[79:64]) && (tupleData[79:64] <= G3_table[search_index][123:108]))// compare dstPort
+                if((G3_table[search_index][139:124] < tupleData[79:64]) & (tupleData[79:64] < G3_table[search_index][123:108]))// compare dstPort
                 begin 
-                    if(G3_table[search_index][148] || G3_table[search_index][139:124] == tupleData[103:96])// compare protocol
+                    if(G3_table[search_index][148] | (G3_table[search_index][139:124] == tupleData[103:96]))// compare protocol
                     begin
                         match <= 1'b1;
                         ruleID <= G3_table[search_index][159:149];
@@ -243,5 +90,4 @@ begin
     if(we)
         G3_table[search_index] <= din;
 end
-
 endmodule

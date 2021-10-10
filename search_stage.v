@@ -1,9 +1,12 @@
-`timescale 1ns / 1ps
+
 
 module search_stage
 #(
     parameter SUBSET_NUM=0,
     parameter TABLE_NUM=0,
+    parameter INDEX_BIT_LEN=11,
+    parameter PACKET_BIT_LEN=104,
+    parameter COMMAND_BIT_LEN=2,
     parameter G0_TABLE_ENTRY_SIZE=1738,
     parameter G1_TABLE_ENTRY_SIZE=154,
     parameter G2_TABLE_ENTRY_SIZE=18,
@@ -13,23 +16,23 @@ module search_stage
 )
 (    
     output reg G0_match,
-    output reg [10:0] G0_match_ruleID,
-    output reg [10:0] G0_next_index,
+    output reg [INDEX_BIT_LEN-1:0] G0_match_ruleID,
+    output reg [INDEX_BIT_LEN-1:0] G0_next_index,
     output reg G1_match,
-    output reg [10:0] G1_match_ruleID,
-    output reg [10:0] G1_next_index,
+    output reg [INDEX_BIT_LEN-1:0] G1_match_ruleID,
+    output reg [INDEX_BIT_LEN-1:0] G1_next_index,
     output reg G2_match,
-    output reg [10:0] G2_match_ruleID,
-    output reg [10:0] G2_next_index,
+    output reg [INDEX_BIT_LEN-1:0] G2_match_ruleID,
+    output reg [INDEX_BIT_LEN-1:0] G2_next_index,
     output reg G3_match,
-    output reg [10:0] G3_match_ruleID,
-    output reg [10:0] G3_next_index,
+    output reg [INDEX_BIT_LEN-1:0] G3_match_ruleID,
+    output reg [INDEX_BIT_LEN-1:0] G3_next_index,
     output reg G4_match,
-    output reg [10:0] G4_match_ruleID,
-    output reg [10:0] G4_next_index,
+    output reg [INDEX_BIT_LEN-1:0] G4_match_ruleID,
+    output reg [INDEX_BIT_LEN-1:0] G4_next_index,
     output reg G4_other_match,
-    output reg [10:0] G4_other_match_ruleID,
-    output reg [10:0] G4_other_next_index,
+    output reg [INDEX_BIT_LEN-1:0] G4_other_match_ruleID,
+    output reg [INDEX_BIT_LEN-1:0] G4_other_next_index,
     
     // record previous stage match or not
     input last_G0_match,
@@ -39,25 +42,23 @@ module search_stage
     input last_G4_match,
     input last_G4_other_match,
     // record previous stage match's ruleID
-    input [10:0] last_G0_match_ruleID,
-    input [10:0] last_G1_match_ruleID,
-    input [10:0] last_G2_match_ruleID,
-    input [10:0] last_G3_match_ruleID,
-    input [10:0] last_G4_match_ruleID,
-    input [10:0] last_G4_other_match_ruleID,
+    input [INDEX_BIT_LEN-1:0] last_G0_match_ruleID,
+    input [INDEX_BIT_LEN-1:0] last_G1_match_ruleID,
+    input [INDEX_BIT_LEN-1:0] last_G2_match_ruleID,
+    input [INDEX_BIT_LEN-1:0] last_G3_match_ruleID,
+    input [INDEX_BIT_LEN-1:0] last_G4_match_ruleID,
+    input [INDEX_BIT_LEN-1:0] last_G4_other_match_ruleID,
     // expect to search's index
-    input [10:0] search0_index,
-    input [10:0] search1_index,
-    input [10:0] search2_index,
-    input [10:0] search3_index,
-    input [10:0] search4_index,
-    input [10:0] search4_other_index,
-    input [103:0] tupleData,
+    input [INDEX_BIT_LEN-1:0] search0_index,
+    input [INDEX_BIT_LEN-1:0] search1_index,
+    input [INDEX_BIT_LEN-1:0] search2_index,
+    input [INDEX_BIT_LEN-1:0] search3_index,
+    input [INDEX_BIT_LEN-1:0] search4_index,
+    input [INDEX_BIT_LEN-1:0] search4_other_index,
+    input [PACKET_BIT_LEN-1:0] tupleData,
     input clk
 );
 
-// just use to fake use write enable, for correct sythesis the RAM 
-reg fake_we;
 
 //use to propagate in search stage
 wire G0_match_w;
@@ -66,18 +67,18 @@ wire G2_match_w;
 wire G3_match_w;
 wire G4_match_w;
 wire G4_other_match_w;
-wire [10:0] G0_ruleID_w;
-wire [10:0] G1_ruleID_w;
-wire [10:0] G2_ruleID_w;
-wire [10:0] G3_ruleID_w;
-wire [10:0] G4_ruleID_w;
-wire [10:0] G4_other_ruleID_w;
-wire [10:0] G0_next_index_w;
-wire [10:0] G1_next_index_w;
-wire [10:0] G2_next_index_w;
-wire [10:0] G3_next_index_w;
-wire [10:0] G4_next_index_w;
-wire [10:0] G4_other_next_index_w;
+wire [INDEX_BIT_LEN-1:0] G0_ruleID_w;
+wire [INDEX_BIT_LEN-1:0] G1_ruleID_w;
+wire [INDEX_BIT_LEN-1:0] G2_ruleID_w;
+wire [INDEX_BIT_LEN-1:0] G3_ruleID_w;
+wire [INDEX_BIT_LEN-1:0] G4_ruleID_w;
+wire [INDEX_BIT_LEN-1:0] G4_other_ruleID_w;
+wire [INDEX_BIT_LEN-1:0] G0_next_index_w;
+wire [INDEX_BIT_LEN-1:0] G1_next_index_w;
+wire [INDEX_BIT_LEN-1:0] G2_next_index_w;
+wire [INDEX_BIT_LEN-1:0] G3_next_index_w;
+wire [INDEX_BIT_LEN-1:0] G4_next_index_w;
+wire [INDEX_BIT_LEN-1:0] G4_other_next_index_w;
 
 search_smallseg_G0table #(
     .SUBSET_NUM(SUBSET_NUM),
@@ -89,7 +90,8 @@ search_smallseg_G0table(
     .ruleID(G0_ruleID_w),
     .next_index(G0_next_index_w),
     
-    .we(fake_we),
+    .din(171'b0),
+    .we(1'b0),
     .search_index(search0_index),
     .tupleData(tupleData),
     .clk(clk)
@@ -105,6 +107,8 @@ search_G1table(
     .ruleID(G1_ruleID_w),
     .next_index(G1_next_index_w),
     
+    .din(171'b0),
+    .we(1'b0),
     .search_index(search1_index),
     .tupleData(tupleData),
     .clk(clk)
@@ -120,6 +124,8 @@ search_G2table(
     .ruleID(G2_ruleID_w),
     .next_index(G2_next_index_w),
     
+    .din(171'b0),
+    .we(1'b0),
     .search_index(search2_index),
     .tupleData(tupleData),
     .clk(clk)
@@ -135,6 +141,8 @@ search_G3table(
     .ruleID(G3_ruleID_w),
     .next_index(G3_next_index_w),
     
+    .din(171'b0),
+    .we(1'b0),
     .search_index(search3_index),
     .tupleData(tupleData),
     .clk(clk)
@@ -150,6 +158,8 @@ search_G4table(
     .ruleID(G4_ruleID_w),
     .next_index(G4_next_index_w),
     
+    .din(171'b0),
+    .we(1'b0),
     .search_index(search4_index),
     .tupleData(tupleData),
     .clk(clk)
@@ -165,12 +175,13 @@ search_G4othertable(
     .ruleID(G4_other_ruleID_w),
     .next_index(G4_other_next_index_w),
     
-    //.din()
+    .din(171'b0),
     .we(1'b0),
     .search_index(search4_other_index),
     .tupleData(tupleData),
     .clk(clk)
 );
+
 
 always@(posedge clk)
 begin
@@ -241,7 +252,6 @@ begin
         G4_other_match_ruleID <= G4_other_ruleID_w;
     end       
     
-    
     // assign next search index
     G0_next_index <= G0_next_index_w;
     G1_next_index <= G1_next_index_w;
@@ -249,12 +259,6 @@ begin
     G3_next_index <= G3_next_index_w;
     G4_next_index <= G4_next_index_w;
     G4_other_next_index <= G4_other_next_index_w;
-    
-    //construct a fake write enable, for correct systhsis the distributed RAM
-    if(tupleData == 170'b0)
-        fake_we <= 1;
-    else
-        fake_we <= 0;
     
 end
 endmodule

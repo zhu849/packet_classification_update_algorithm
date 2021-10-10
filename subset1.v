@@ -1,11 +1,9 @@
 
-
-module subset0#(
+module subset1#(
     parameter INDEX_BIT_LEN=11,
     parameter PACKET_BIT_LEN=104,
     parameter COMMAND_BIT_LEN=2
-)
-(
+)(
     output reg match_reg,
     output reg [INDEX_BIT_LEN-1:0] match_ruleID_reg,
     
@@ -15,13 +13,13 @@ module subset0#(
 );
 
  /******  Localparam Define ******/
- localparam STAGE_NUM=13;
- localparam SEARCH_STAGE_NUM=10;//這裡因為在 Yuhung 原版中 T1 是用 10 當作 theshold 所以整個方法最多不會超過 10次的 memory access，意即最多就是搜尋時次一定可以搜尋完畢(worst case)
+ localparam STAGE_NUM=7;
+ localparam SEARCH_STAGE_NUM=4;
  /****************************/
 
-integer i; // 被控制邏輯的 for 迴圈所用
-// 每個 pipeline 內的 pipeline reg 都需要一份目前處理的 packet tuple data
-(* KEEP = "TRUE" *)reg [PACKET_BIT_LEN-1:0] tupleData_reg [STAGE_NUM-1:0];
+
+integer i; // variable
+(* KEEP = "TRUE" *)reg [PACKET_BIT_LEN-1:0] tupleData_reg [STAGE_NUM-1:0];//every stage should have one packet, and it should record with ten pipeline stage
 
 // get from small segment table's information
 // 從 segmentation table 中得到的
@@ -95,11 +93,11 @@ wire [INDEX_BIT_LEN-1:0] G4_other_match_ruleID_w [SEARCH_STAGE_NUM-1:0];
 
 ///////////////////////////////////////////////////////// Search Hash Table /////////////////////////////////////////////////////////
 hashtable0_index_check #(
-    .SUBSET_NUM(0),
+    .SUBSET_NUM(1),
     .INDEX_BIT_LEN(INDEX_BIT_LEN),
     .PACKET_BIT_LEN(PACKET_BIT_LEN),
     .COMMAND_BIT_LEN(COMMAND_BIT_LEN)
-)hashtable0_index_check(
+)hashtable1_index_check(
     .smallorbig_segment(smallorbig_segment),
     .seg_index(segment_index),
     
@@ -110,14 +108,14 @@ hashtable0_index_check #(
 ///////////////////////////////////////////////////////// Search Big Segment Table /////////////////////////////////////////////////////////
 bigsegtable0_index_check 
 #(
-    .SUBSET_NUM(0),
+    .SUBSET_NUM(1),
     .INDEX_BIT_LEN(INDEX_BIT_LEN),
     .PACKET_BIT_LEN(PACKET_BIT_LEN),
     .COMMAND_BIT_LEN(COMMAND_BIT_LEN),
-    .BIGSEGMENT_NUM(184),
-    .BIGSEGMENT_BIT_LEN(8),//2^8=256>184
+    .BIGSEGMENT_NUM(1),
+    .BIGSEGMENT_BIT_LEN(1),
     .DIN_BIT_LEN(60)
-)bigsegtable0_index_check(
+)bigsegtable1_index_check(
     .group0_index(group0_index_w),
     .group1_index(group1_index_w),
     .group2_index(group2_index_w),
@@ -132,16 +130,15 @@ bigsegtable0_index_check
     .segment_index(segment_index),
     .clk(clk)
 );
-
 ///////////////////////////////////////////////////////// Protocol Table /////////////////////////////////////////////////////////
 prototable0_index_check #(
-    .SUBSET_NUM(0),
+    .SUBSET_NUM(1),
     .INDEX_BIT_LEN(INDEX_BIT_LEN),
     .PACKET_BIT_LEN(PACKET_BIT_LEN),
     .COMMAND_BIT_LEN(COMMAND_BIT_LEN),
     .PROTOCOL_TABLE_SIZE(0),
     .DIN_BIT_LEN(33)
-)prototable0_index_check(
+)prototable1_index_check(
      .searchG0_index(searchG0_index_w[0]),
      .searchG1_index(searchG1_index_w[0]),
      .searchG2_index(searchG2_index_w[0]),
@@ -150,7 +147,7 @@ prototable0_index_check #(
      .searchG4_others_index(searchG4_other_index_w[0]),
      
      .we(1'b0),
-     .din(0),
+     .din(),
      .tupleData(tupleData_reg[2]),
      .group0_index(group0_index_reg),
      .group1_index(group1_index_reg),
@@ -160,19 +157,15 @@ prototable0_index_check #(
      .group4_smallorbiggroup(group4_smallorbiggroup_reg),
      .clk(clk)
 );
-
 ///////////////////////////////////////////////////////// Stage 1 /////////////////////////////////////////////////////////
 search_stage #(
-  .SUBSET_NUM(0),
+  .SUBSET_NUM(1),
   .TABLE_NUM(0),
-  .INDEX_BIT_LEN(INDEX_BIT_LEN),
-  .PACKET_BIT_LEN(PACKET_BIT_LEN),
-  .COMMAND_BIT_LEN(COMMAND_BIT_LEN),
-  .G0_TABLE_ENTRY_SIZE(1738),
-  .G1_TABLE_ENTRY_SIZE(154),
-  .G2_TABLE_ENTRY_SIZE(18),
+  .G0_TABLE_ENTRY_SIZE(81),
+  .G1_TABLE_ENTRY_SIZE(0),
+  .G2_TABLE_ENTRY_SIZE(0),
   .G3_TABLE_ENTRY_SIZE(0),
-  .G4_TABLE_ENTRY_SIZE(29),
+  .G4_TABLE_ENTRY_SIZE(0),
   .G4_OTHER_TABLE_ENTRY_SIZE(0)
 ) stage1(
     .G0_match(G0_match_w[0]),
@@ -217,13 +210,13 @@ search_stage #(
 );
 ///////////////////////////////////////////////////////// Stage 2 /////////////////////////////////////////////////////////
 search_stage #(
-  .SUBSET_NUM(0),
+  .SUBSET_NUM(1),
   .TABLE_NUM(1),
-  .G0_TABLE_ENTRY_SIZE(258),
-  .G1_TABLE_ENTRY_SIZE(91),
+  .G0_TABLE_ENTRY_SIZE(33),
+  .G1_TABLE_ENTRY_SIZE(0),
   .G2_TABLE_ENTRY_SIZE(0),
   .G3_TABLE_ENTRY_SIZE(0),
-  .G4_TABLE_ENTRY_SIZE(4),
+  .G4_TABLE_ENTRY_SIZE(0),
   .G4_OTHER_TABLE_ENTRY_SIZE(0)
 ) stage2(
     .G0_match(G0_match_w[1]),
@@ -268,13 +261,13 @@ search_stage #(
 );
 ///////////////////////////////////////////////////////// Stage 3 /////////////////////////////////////////////////////////
 search_stage #(
-  .SUBSET_NUM(0),
+  .SUBSET_NUM(1),
   .TABLE_NUM(2),
-  .G0_TABLE_ENTRY_SIZE(211),
-  .G1_TABLE_ENTRY_SIZE(49),
+  .G0_TABLE_ENTRY_SIZE(10),
+  .G1_TABLE_ENTRY_SIZE(0),
   .G2_TABLE_ENTRY_SIZE(0),
   .G3_TABLE_ENTRY_SIZE(0),
-  .G4_TABLE_ENTRY_SIZE(1),
+  .G4_TABLE_ENTRY_SIZE(0),
   .G4_OTHER_TABLE_ENTRY_SIZE(0)
 ) stage3(
     .G0_match(G0_match_w[2]),
@@ -319,10 +312,10 @@ search_stage #(
 );
 ///////////////////////////////////////////////////////// Stage 4 /////////////////////////////////////////////////////////
 search_stage #(
-  .SUBSET_NUM(0),
+  .SUBSET_NUM(1),
   .TABLE_NUM(3),
-  .G0_TABLE_ENTRY_SIZE(174),
-  .G1_TABLE_ENTRY_SIZE(19),
+  .G0_TABLE_ENTRY_SIZE(4),
+  .G1_TABLE_ENTRY_SIZE(0),
   .G2_TABLE_ENTRY_SIZE(0),
   .G3_TABLE_ENTRY_SIZE(0),
   .G4_TABLE_ENTRY_SIZE(0),
@@ -330,22 +323,22 @@ search_stage #(
 ) stage4(
     .G0_match(G0_match_w[3]),
     .G0_match_ruleID(G0_match_ruleID_w[3]),
-    .G0_next_index(searchG0_index_w[4]),
+    //.G0_next_index(searchG0_index_w[4]),
     .G1_match(G1_match_w[3]),
     .G1_match_ruleID(G1_match_ruleID_w[3]),
-    .G1_next_index(searchG1_index_w[4]),
+    //.G1_next_index(searchG1_index_w[4]),
     .G2_match(G2_match_w[3]),
     .G2_match_ruleID(G2_match_ruleID_w[3]),
-    .G2_next_index(searchG2_index_w[4]),    
+    //.G2_next_index(searchG2_index_w[4]),    
     .G3_match(G3_match_w[3]),
     .G3_match_ruleID(G3_match_ruleID_w[3]),
-    .G3_next_index(searchG3_index_w[4]),
+    //.G3_next_index(searchG3_index_w[4]),
     .G4_match(G4_match_w[3]),
     .G4_match_ruleID(G4_match_ruleID_w[3]),
-    .G4_next_index(searchG4_index_w[4]),   
+    //.G4_next_index(searchG4_index_w[4]),   
     .G4_other_match(G4_other_match_w[3]),
     .G4_other_match_ruleID(G4_other_match_ruleID_w[3]),
-    .G4_other_next_index(searchG4_other_index_w[4]),
+    //.G4_other_next_index(searchG4_other_index_w[4]),
     
     .last_G0_match(G0_match_reg[2]),
     .last_G1_match(G1_match_reg[2]),
@@ -368,315 +361,7 @@ search_stage #(
     .tupleData(tupleData_reg[6]),
     .clk(clk)
 );
-///////////////////////////////////////////////////////// Stage 5 /////////////////////////////////////////////////////////
-search_stage #(
-  .SUBSET_NUM(0),
-  .TABLE_NUM(4),
-  .G0_TABLE_ENTRY_SIZE(148),
-  .G1_TABLE_ENTRY_SIZE(0),
-  .G2_TABLE_ENTRY_SIZE(0),
-  .G3_TABLE_ENTRY_SIZE(0),
-  .G4_TABLE_ENTRY_SIZE(0),
-  .G4_OTHER_TABLE_ENTRY_SIZE(0)
-) stage5(
-    .G0_match(G0_match_w[4]),
-    .G0_match_ruleID(G0_match_ruleID_w[4]),
-    .G0_next_index(searchG0_index_w[5]),
-    .G1_match(G1_match_w[4]),
-    .G1_match_ruleID(G1_match_ruleID_w[4]),
-    .G1_next_index(searchG1_index_w[5]),
-    .G2_match(G2_match_w[4]),
-    .G2_match_ruleID(G2_match_ruleID_w[4]),
-    .G2_next_index(searchG2_index_w[5]),    
-    .G3_match(G3_match_w[4]),
-    .G3_match_ruleID(G3_match_ruleID_w[4]),
-    .G3_next_index(searchG3_index_w[5]),
-    .G4_match(G4_match_w[4]),
-    .G4_match_ruleID(G4_match_ruleID_w[4]),
-    .G4_next_index(searchG4_index_w[5]),   
-    .G4_other_match(G4_other_match_w[4]),
-    .G4_other_match_ruleID(G4_other_match_ruleID_w[4]),
-    .G4_other_next_index(searchG4_other_index_w[5]),
-    
-    .last_G0_match(G0_match_reg[3]),
-    .last_G1_match(G1_match_reg[3]),
-    .last_G2_match(G2_match_reg[3]),
-    .last_G3_match(G3_match_reg[3]),
-    .last_G4_match(G4_match_reg[3]),
-    .last_G4_other_match(G4_other_match_reg[3]),
-    .last_G0_match_ruleID(G0_match_ruleID_reg[3]),
-    .last_G1_match_ruleID(G1_match_ruleID_reg[3]),
-    .last_G2_match_ruleID(G2_match_ruleID_reg[3]),
-    .last_G3_match_ruleID(G3_match_ruleID_reg[3]),
-    .last_G4_match_ruleID(G4_match_ruleID_reg[3]),
-    .last_G4_other_match_ruleID(G4_other_match_ruleID_reg[3]),
-    .search0_index(searchG0_index_reg[4]),
-    .search1_index(searchG1_index_reg[4]),
-    .search2_index(searchG2_index_reg[4]),
-    .search3_index(searchG3_index_reg[4]),
-    .search4_index(searchG4_index_reg[4]),
-    .search4_other_index(searchG4_other_index_reg[4]),
-    .tupleData(tupleData_reg[7]),
-    .clk(clk)
-);
-///////////////////////////////////////////////////////// Stage 6 /////////////////////////////////////////////////////////
-search_stage #(
-  .SUBSET_NUM(0),
-  .TABLE_NUM(5),
-  .G0_TABLE_ENTRY_SIZE(118),
-  .G1_TABLE_ENTRY_SIZE(0),
-  .G2_TABLE_ENTRY_SIZE(0),
-  .G3_TABLE_ENTRY_SIZE(0),
-  .G4_TABLE_ENTRY_SIZE(0),
-  .G4_OTHER_TABLE_ENTRY_SIZE(0)
-) stage6(
-    .G0_match(G0_match_w[5]),
-    .G0_match_ruleID(G0_match_ruleID_w[5]),
-    .G0_next_index(searchG0_index_w[6]),
-    .G1_match(G1_match_w[5]),
-    .G1_match_ruleID(G1_match_ruleID_w[5]),
-    .G1_next_index(searchG1_index_w[6]),
-    .G2_match(G2_match_w[5]),
-    .G2_match_ruleID(G2_match_ruleID_w[5]),
-    .G2_next_index(searchG2_index_w[6]),    
-    .G3_match(G3_match_w[5]),
-    .G3_match_ruleID(G3_match_ruleID_w[5]),
-    .G3_next_index(searchG3_index_w[6]),
-    .G4_match(G4_match_w[5]),
-    .G4_match_ruleID(G4_match_ruleID_w[5]),
-    .G4_next_index(searchG4_index_w[6]),   
-    .G4_other_match(G4_other_match_w[5]),
-    .G4_other_match_ruleID(G4_other_match_ruleID_w[5]),
-    .G4_other_next_index(searchG4_other_index_w[6]),
-    
-    .last_G0_match(G0_match_reg[4]),
-    .last_G1_match(G1_match_reg[4]),
-    .last_G2_match(G2_match_reg[4]),
-    .last_G3_match(G3_match_reg[4]),
-    .last_G4_match(G4_match_reg[4]),
-    .last_G4_other_match(G4_other_match_reg[4]),
-    .last_G0_match_ruleID(G0_match_ruleID_reg[4]),
-    .last_G1_match_ruleID(G1_match_ruleID_reg[4]),
-    .last_G2_match_ruleID(G2_match_ruleID_reg[4]),
-    .last_G3_match_ruleID(G3_match_ruleID_reg[4]),
-    .last_G4_match_ruleID(G4_match_ruleID_reg[4]),
-    .last_G4_other_match_ruleID(G4_other_match_ruleID_reg[4]),
-    .search0_index(searchG0_index_reg[5]),
-    .search1_index(searchG1_index_reg[5]),
-    .search2_index(searchG2_index_reg[5]),
-    .search3_index(searchG3_index_reg[5]),
-    .search4_index(searchG4_index_reg[5]),
-    .search4_other_index(searchG4_other_index_reg[5]),
-    .tupleData(tupleData_reg[8]),
-    .clk(clk)
-);
-///////////////////////////////////////////////////////// Stage 7 /////////////////////////////////////////////////////////
-search_stage #(
-  .SUBSET_NUM(0),
-  .TABLE_NUM(6),
-  .G0_TABLE_ENTRY_SIZE(94),
-  .G1_TABLE_ENTRY_SIZE(0),
-  .G2_TABLE_ENTRY_SIZE(0),
-  .G3_TABLE_ENTRY_SIZE(0),
-  .G4_TABLE_ENTRY_SIZE(0),
-  .G4_OTHER_TABLE_ENTRY_SIZE(0)
-) stage7(
-    .G0_match(G0_match_w[6]),
-    .G0_match_ruleID(G0_match_ruleID_w[6]),
-    .G0_next_index(searchG0_index_w[7]),
-    .G1_match(G1_match_w[6]),
-    .G1_match_ruleID(G1_match_ruleID_w[6]),
-    .G1_next_index(searchG1_index_w[7]),
-    .G2_match(G2_match_w[6]),
-    .G2_match_ruleID(G2_match_ruleID_w[6]),
-    .G2_next_index(searchG2_index_w[7]),    
-    .G3_match(G3_match_w[6]),
-    .G3_match_ruleID(G3_match_ruleID_w[6]),
-    .G3_next_index(searchG3_index_w[7]),
-    .G4_match(G4_match_w[6]),
-    .G4_match_ruleID(G4_match_ruleID_w[6]),
-    .G4_next_index(searchG4_index_w[7]),   
-    .G4_other_match(G4_other_match_w[6]),
-    .G4_other_match_ruleID(G4_other_match_ruleID_w[6]),
-    .G4_other_next_index(searchG4_other_index_w[7]),
-    
-    .last_G0_match(G0_match_reg[5]),
-    .last_G1_match(G1_match_reg[5]),
-    .last_G2_match(G2_match_reg[5]),
-    .last_G3_match(G3_match_reg[5]),
-    .last_G4_match(G4_match_reg[5]),
-    .last_G4_other_match(G4_other_match_reg[5]),
-    .last_G0_match_ruleID(G0_match_ruleID_reg[5]),
-    .last_G1_match_ruleID(G1_match_ruleID_reg[5]),
-    .last_G2_match_ruleID(G2_match_ruleID_reg[5]),
-    .last_G3_match_ruleID(G3_match_ruleID_reg[5]),
-    .last_G4_match_ruleID(G4_match_ruleID_reg[5]),
-    .last_G4_other_match_ruleID(G4_other_match_ruleID_reg[5]),
-    .search0_index(searchG0_index_reg[6]),
-    .search1_index(searchG1_index_reg[6]),
-    .search2_index(searchG2_index_reg[6]),
-    .search3_index(searchG3_index_reg[6]),
-    .search4_index(searchG4_index_reg[6]),
-    .search4_other_index(searchG4_other_index_reg[6]),
-    .tupleData(tupleData_reg[9]),
-    .clk(clk)
-);
-///////////////////////////////////////////////////////// Stage 8 /////////////////////////////////////////////////////////
-search_stage #(
-  .SUBSET_NUM(0),
-  .TABLE_NUM(7),
-  .G0_TABLE_ENTRY_SIZE(67),
-  .G1_TABLE_ENTRY_SIZE(0),
-  .G2_TABLE_ENTRY_SIZE(0),
-  .G3_TABLE_ENTRY_SIZE(0),
-  .G4_TABLE_ENTRY_SIZE(0),
-  .G4_OTHER_TABLE_ENTRY_SIZE(0)
-) stage8(
-    .G0_match(G0_match_w[7]),
-    .G0_match_ruleID(G0_match_ruleID_w[7]),
-    .G0_next_index(searchG0_index_w[8]),
-    .G1_match(G1_match_w[7]),
-    .G1_match_ruleID(G1_match_ruleID_w[7]),
-    .G1_next_index(searchG1_index_w[8]),
-    .G2_match(G2_match_w[7]),
-    .G2_match_ruleID(G2_match_ruleID_w[7]),
-    .G2_next_index(searchG2_index_w[8]),    
-    .G3_match(G3_match_w[7]),
-    .G3_match_ruleID(G3_match_ruleID_w[7]),
-    .G3_next_index(searchG3_index_w[8]),
-    .G4_match(G4_match_w[7]),
-    .G4_match_ruleID(G4_match_ruleID_w[7]),
-    .G4_next_index(searchG4_index_w[8]),   
-    .G4_other_match(G4_other_match_w[7]),
-    .G4_other_match_ruleID(G4_other_match_ruleID_w[7]),
-    .G4_other_next_index(searchG4_other_index_w[8]),
-    
-    .last_G0_match(G0_match_reg[6]),
-    .last_G1_match(G1_match_reg[6]),
-    .last_G2_match(G2_match_reg[6]),
-    .last_G3_match(G3_match_reg[6]),
-    .last_G4_match(G4_match_reg[6]),
-    .last_G4_other_match(G4_other_match_reg[6]),
-    .last_G0_match_ruleID(G0_match_ruleID_reg[6]),
-    .last_G1_match_ruleID(G1_match_ruleID_reg[6]),
-    .last_G2_match_ruleID(G2_match_ruleID_reg[6]),
-    .last_G3_match_ruleID(G3_match_ruleID_reg[6]),
-    .last_G4_match_ruleID(G4_match_ruleID_reg[6]),
-    .last_G4_other_match_ruleID(G4_other_match_ruleID_reg[6]),
-    .search0_index(searchG0_index_reg[7]),
-    .search1_index(searchG1_index_reg[7]),
-    .search2_index(searchG2_index_reg[7]),
-    .search3_index(searchG3_index_reg[7]),
-    .search4_index(searchG4_index_reg[7]),
-    .search4_other_index(searchG4_other_index_reg[7]),
-    .tupleData(tupleData_reg[10]),
-    .clk(clk)
-);
-///////////////////////////////////////////////////////// Stage 9 /////////////////////////////////////////////////////////
-search_stage #(
-  .SUBSET_NUM(0),
-  .TABLE_NUM(8),
-  .G0_TABLE_ENTRY_SIZE(42),
-  .G1_TABLE_ENTRY_SIZE(0),
-  .G2_TABLE_ENTRY_SIZE(0),
-  .G3_TABLE_ENTRY_SIZE(0),
-  .G4_TABLE_ENTRY_SIZE(0),
-  .G4_OTHER_TABLE_ENTRY_SIZE(0)
-) stage9(
-    .G0_match(G0_match_w[8]),
-    .G0_match_ruleID(G0_match_ruleID_w[8]),
-    .G0_next_index(searchG0_index_w[9]),
-    .G1_match(G1_match_w[8]),
-    .G1_match_ruleID(G1_match_ruleID_w[8]),
-    .G1_next_index(searchG1_index_w[9]),
-    .G2_match(G2_match_w[8]),
-    .G2_match_ruleID(G2_match_ruleID_w[8]),
-    .G2_next_index(searchG2_index_w[9]),    
-    .G3_match(G3_match_w[8]),
-    .G3_match_ruleID(G3_match_ruleID_w[8]),
-    .G3_next_index(searchG3_index_w[9]),
-    .G4_match(G4_match_w[8]),
-    .G4_match_ruleID(G4_match_ruleID_w[8]),
-    .G4_next_index(searchG4_index_w[9]),   
-    .G4_other_match(G4_other_match_w[8]),
-    .G4_other_match_ruleID(G4_other_match_ruleID_w[8]),
-    .G4_other_next_index(searchG4_other_index_w[9]),
-    
-    .last_G0_match(G0_match_reg[7]),
-    .last_G1_match(G1_match_reg[7]),
-    .last_G2_match(G2_match_reg[7]),
-    .last_G3_match(G3_match_reg[7]),
-    .last_G4_match(G4_match_reg[7]),
-    .last_G4_other_match(G4_other_match_reg[7]),
-    .last_G0_match_ruleID(G0_match_ruleID_reg[7]),
-    .last_G1_match_ruleID(G1_match_ruleID_reg[7]),
-    .last_G2_match_ruleID(G2_match_ruleID_reg[7]),
-    .last_G3_match_ruleID(G3_match_ruleID_reg[7]),
-    .last_G4_match_ruleID(G4_match_ruleID_reg[7]),
-    .last_G4_other_match_ruleID(G4_other_match_ruleID_reg[7]),
-    .search0_index(searchG0_index_reg[8]),
-    .search1_index(searchG1_index_reg[8]),
-    .search2_index(searchG2_index_reg[8]),
-    .search3_index(searchG3_index_reg[8]),
-    .search4_index(searchG4_index_reg[8]),
-    .search4_other_index(searchG4_other_index_reg[8]),
-    .tupleData(tupleData_reg[11]),
-    .clk(clk)
-);
-///////////////////////////////////////////////////////// Stage 10 /////////////////////////////////////////////////////////
-search_stage #(
-  .SUBSET_NUM(0),
-  .TABLE_NUM(9),
-  .G0_TABLE_ENTRY_SIZE(19),
-  .G1_TABLE_ENTRY_SIZE(0),
-  .G2_TABLE_ENTRY_SIZE(0),
-  .G3_TABLE_ENTRY_SIZE(0),
-  .G4_TABLE_ENTRY_SIZE(0),
-  .G4_OTHER_TABLE_ENTRY_SIZE(0)
-) stage10(
-    .G0_match(G0_match_w[9]),
-    .G0_match_ruleID(G0_match_ruleID_w[9]),
-    //.G0_next_index(searchG0_index_w[10]),
-    .G1_match(G1_match_w[9]),
-    .G1_match_ruleID(G1_match_ruleID_w[9]),
-    //.G1_next_index(searchG1_index_w[10]),
-    .G2_match(G2_match_w[9]),
-    .G2_match_ruleID(G2_match_ruleID_w[9]),
-    //.G2_next_index(searchG2_index_w[10]),    
-    .G3_match(G3_match_w[9]),
-    .G3_match_ruleID(G3_match_ruleID_w[9]),
-    //.G3_next_index(searchG3_index_w[10]),
-    .G4_match(G4_match_w[9]),
-    .G4_match_ruleID(G4_match_ruleID_w[9]),
-    //.G4_next_index(searchG4_index_w[10]),   
-    .G4_other_match(G4_other_match_w[9]),
-    .G4_other_match_ruleID(G4_other_match_ruleID_w[9]),
-    //.G4_next_other_index(searchG4_other_index_w[10]),
-    
-    
-    .last_G0_match(G0_match_reg[8]),
-    .last_G1_match(G1_match_reg[8]),
-    .last_G2_match(G2_match_reg[8]),
-    .last_G3_match(G3_match_reg[8]),
-    .last_G4_match(G4_match_reg[8]),
-    .last_G4_other_match(G4_other_match_reg[8]),
-    .last_G0_match_ruleID(G0_match_ruleID_reg[8]),
-    .last_G1_match_ruleID(G1_match_ruleID_reg[8]),
-    .last_G2_match_ruleID(G2_match_ruleID_reg[8]),
-    .last_G3_match_ruleID(G3_match_ruleID_reg[8]),
-    .last_G4_match_ruleID(G4_match_ruleID_reg[8]),
-    .last_G4_other_match_ruleID(G4_other_match_ruleID_reg[8]),
-    .search0_index(searchG0_index_reg[9]),
-    .search1_index(searchG1_index_reg[9]),
-    .search2_index(searchG2_index_reg[9]),
-    .search3_index(searchG3_index_reg[9]),
-    .search4_index(searchG4_index_reg[9]),
-    .search4_other_index(searchG4_other_index_reg[9]),
-    .tupleData(tupleData_reg[12]),
-    .clk(clk)
-);
 ///////////////////////////////////////////////////////// Search End /////////////////////////////////////////////////////////
-
 
 always@(posedge clk)
 begin
