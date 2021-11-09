@@ -1,7 +1,7 @@
 # Hardwired LUT Example
 ## Useage
 * mylut - main file with one rule match design.
-	* In this design use IPv4 = `140.116.80.\*/22`. Binary format is `100011_000111_010001_0100**_******_**`.
+	* In this design use IPv4 = `140.116.80.*/22`. Binary format is `100011_000111_010001_0100**_******_**`.
 	* Store with 6\*LUT6 that data content is `100011`, `000111`, `010001`, `0100**`, `******`, `******`
 * tb - testbench read testcase file, there have a file named `ipv4_data.txt`
 	* Remember modify file path by yourself.
